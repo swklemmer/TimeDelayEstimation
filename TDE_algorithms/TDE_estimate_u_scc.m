@@ -1,5 +1,5 @@
-function TDE_estimate_u_ncc(IData, QData)
-%TDE_ESTIMATE_U_NCC: Built-in normalized cross-correlation with polynomial 
+function TDE_estimate_u_scc(IData, QData)
+%TDE_ESTIMATE_U_SCC: Search region cross-correlation with polynomial
 % subsample 2D interpolation.
 % Input: IData, QData
 % Size(IData) =
@@ -10,8 +10,9 @@ function TDE_estimate_u_ncc(IData, QData)
 % PData.Size([1,2]) = [140, 43] @ pdelta = 0.3
 
 % Declare static variables
-persistent dz w_x w_z hop_x hop_z N_x N_z coarse_x coarse_z ...
-    fine_dim fine_x fine_z bmode_adq MovieData
+persistent dz w_x w_z hop_x hop_z N_x N_z ...
+    coarse_x coarse_z fine_dim fine_x fine_z lim_ux lim_uz ...
+    bmode_adq MovieData
 
 % Read parameter change flag
 param_flag = evalin('base', 'param_flag');
@@ -22,7 +23,7 @@ if param_flag
     % Lower flag
     assignin('base', 'param_flag', 0);
 
-    % Retrieve constant parameters
+    % Number of adquisitions
     bmode_adq = evalin('base', 'P.bmode_adq');
 
     % Get ROI dimensions
@@ -30,32 +31,38 @@ if param_flag
     z_max = evalin('base', 'PData.Size(1)'); % ROI size [wvls]
     dx = evalin('base', 'PData.PDelta(1)');  % x resolution [wvls]
     dz = evalin('base', 'PData.PDelta(3)');  % z resolution [wvls]
-
+    
     % Get estimation Parameters (may change due to grid resolution)
     est_param = evalin('base', 'current_param');
     axi_len = est_param.axi_len; % Axi. window length [wvls]
     lat_len = est_param.lat_len; % Lat. window length [wvls]
     axi_hop = est_param.axi_hop; % Axi. window hop [wvls]
     lat_hop = est_param.lat_hop; % Lat. window hop [wvls]
+    search_z = est_param.search_z; % Axi. disp. limit [wvls]
+    search_x = est_param.search_x; % Lat. disp. limit [wvls]
     fine_res = est_param.fine_res; % Fine resolution [samples]
-    
+
     % Generate windows
-    w_z = 1 + 2 * ceil(axi_len / dz / 2); % Axi. window length [samples]
-    w_x = 1 + 2 * ceil(lat_len / dx / 2); % Lat. window length [samples]
+    w_z = 1 + 2 * ceil(axi_len / dz / 2);% Axi. window length [samples]
+    w_x = 1 + 2 * ceil(lat_len / dx / 2);% Lat. window length [samples]
     hop_z = max(floor(axi_hop / dz), 1); % Axi. hop size [samples]
     hop_x = max(floor(lat_hop / dx), 1); % Lat. hop size [samples]
     N_z = floor((z_max - w_z) / hop_z);  % Number of windows
     N_x = floor((x_max - w_x) / hop_x);  % Number of windows
+    lim_uz = ceil(search_z / dz);        % Axi. disp. limit [samples]
+    lim_ux = ceil(search_x / dx);        % Lat. disp. limit [samples]
 
     % Save parameters to text file
     param = {'Axi. Win. Size'; 'Axi. Win. Hop'; ...
-            'Lat. Win. Size'; 'Lat. Win. Hop'; 'Subsample Res.'};
-    value = [w_z * dz; hop_z * dz; w_x * dx; hop_x * dx; fine_res];
-    units = {'wvls'; 'wvls'; 'wvls'; 'wvls'; 'smpls'};
+            'Lat. Win. Size'; 'Lat. Win. Hop'; ...
+            'Subsample Res.'; 'Axi. Max. Disp.'; 'Lat. Max. Disp'};
+    value = [w_z * dz; hop_z * dz; w_x * dx; hop_x * dx; fine_res;...
+            lim_uz * dz; lim_ux * dx];
+    units = {'wvls'; 'wvls'; 'wvls'; 'wvls'; 'smpls'; 'wvls'; 'wvls'};
     param_table = table(param, value, units);
     evalin('base', 'param_table = table();');
     assignin('base', 'param_table', param_table);
-    
+
     % Create coarse and fine grids
     [coarse_x, coarse_z] = meshgrid(-2:2, -2:2);
     fine_dim = (-2:fine_res:2);
@@ -91,20 +98,21 @@ for t = 2:bmode_adq
         for z = 1:N_z
     
             % Calculate correlation between windows
-            win_z = (1:w_z) + (z - 1) * hop_z;
             win_x = (1:w_x) + (x - 1) * hop_x;
+            win_z = (1:w_z) + (z - 1) * hop_z;
 
-            % Calculate correlation (size = 2 w_z - 1 , 2 w_x - 1)
-            win_corr = normxcorr2(pre_sono(win_z, win_x), ...
-                                  post_sono(win_z, win_x));
-
+            % Calculate correlation only within search space
+            win_corr = ncc2d(pre_sono(win_z, win_x), ...
+                             post_sono(win_z, win_x), ...
+                             [lim_uz, lim_ux]);
+    
             % Find maximum with coarse precission
             [~, max_corr] = max(win_corr, [], 'all');
             [max_z, max_x] = ind2sub(size(win_corr), max_corr);
-
-            % Establish coarse displacement limit (3, 2W - 3)
-            max_z = min(max(max_z, 3), 2 * w_z - 3);
-            max_x = min(max(max_x, 3), 2 * w_x - 3);
+    
+            % Establish coarse displacement limit (3, 2max - 1)
+            max_x = min(max(max_x, 3), 2 * lim_ux - 1);
+            max_z = min(max(max_z, 3), 2 * lim_uz - 1);
     
             % Fit correlation to polynomial around coarse maximum
             xcorr_p = polyFit2D(win_corr((-2:2) + max_z, (-2:2) + max_x), ...
@@ -116,10 +124,10 @@ for t = 2:bmode_adq
             % Find maximum in fine grid
             [~, max_poly] = max(fine_xcorr, [], 'all');
             [~, max_dz] = ind2sub(size(fine_xcorr), max_poly);
-  
+    
             % Calculate displacement
             MovieData(z, x, t-1) = ...
-                - (max_z - w_z + fine_dim(max_dz)) * dz;
+                - (max_z - lim_uz - 1 + fine_dim(max_dz)) * dz;
         end
     end
 end

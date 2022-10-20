@@ -61,6 +61,9 @@ if param_flag
     fine_dim = (-2:fine_res:2);
     [fine_x, fine_z] = meshgrid(fine_dim, fine_dim);
 
+    % Generate 2D Hanning window
+    hann_win = hanning(w_z) * hanning(w_x)';
+
     % Generate estimation dimentions [wvls]
     evalin('base', ...
         sprintf(...
@@ -95,8 +98,8 @@ for t = 2:bmode_adq
             win_x = (1:w_x) + (x - 1) * hop_x;
 
             % Calculate correlation (size = 2 w_z - 1 , 2 w_x - 1)
-            win_corr = normxcorr2(pre_sono(win_z, win_x), ...
-                                  post_sono(win_z, win_x));
+            win_corr = normxcorr2(hann_win .* pre_sono(win_z, win_x), ...
+                                  hann_win .* post_sono(win_z, win_x));
 
             % Find maximum with coarse precission
             [~, max_corr] = max(win_corr, [], 'all');
@@ -118,8 +121,7 @@ for t = 2:bmode_adq
             [~, max_dz] = ind2sub(size(fine_xcorr), max_poly);
   
             % Calculate displacement
-            MovieData(z, x, t-1) = ...
-                - (max_z - w_z + fine_dim(max_dz)) * dz;
+            MovieData(z, x, t-1) = (max_z - w_z + fine_dim(max_dz)) * dz;
         end
     end
 end

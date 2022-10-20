@@ -10,9 +10,8 @@ function TDE_estimate_u_scc(IData, QData)
 % PData.Size([1,2]) = [140, 43] @ pdelta = 0.3
 
 % Declare static variables
-persistent dz w_x w_z hop_x hop_z N_x N_z ...
-    coarse_x coarse_z fine_dim fine_x fine_z lim_ux lim_uz ...
-    bmode_adq MovieData
+persistent dz w_x w_z hop_x hop_z N_x N_z coarse_x coarse_z ...
+    fine_dim fine_x fine_z lim_ux lim_uz bmode_adq MovieData
 
 % Read parameter change flag
 param_flag = evalin('base', 'param_flag');

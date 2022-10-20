@@ -1,10 +1,11 @@
 
 % Experiment info
-exp = 'lat_len';
 mu = 8500; % shear modulus [Pa]
 alg_list = ['ncc'; 'scc'; 'lou']';
-param_list = 3:4:15; % window lengths [wvls]
-legend_list = cell(length(param_list)*length(alg_list), 1);
+alg_list = ['lou']';
+exp = 'cum_sum';
+param = 1:2:20;
+legend_list = cell(length(param)*size(alg_list, 2), 1);
 
 figure(1)
 hold on
@@ -36,9 +37,9 @@ for alg = alg_list
     elseif strcmp(alg', 'lou'); style = '*';
     end
 
-    for param = param_list
+    for par = param
         % Load results
-        load(sprintf('MovieData/%s/mu%d_%s_p%d', exp, mu, alg, param));
+        load(sprintf('MovieData/%s/mu%d_%s_p%d', exp, mu, alg, par));
 
         % Plot RMSE
         figure(1)
@@ -53,7 +54,7 @@ for alg = alg_list
         plot(sd, style)
 
         % Add legend entry
-        legend_list{i, :} = [alg', sprintf(' %d', param)];
+        legend_list{i, :} = [alg', sprintf(' %d', par)];
         i = i + 1;
     end
 end

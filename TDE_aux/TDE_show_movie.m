@@ -16,7 +16,7 @@ function TDE_show_movie(hObject, ~)
     t = 1;
     while hObject.Value
         pause(3 / size(MovieData, 3))
-        %waitforbuttonpress()
+
         set(img, 'CData', squeeze(MovieData(:, :, t)));
         if t < size(MovieData, 3); t = t + 1;
             else; t = 1; end

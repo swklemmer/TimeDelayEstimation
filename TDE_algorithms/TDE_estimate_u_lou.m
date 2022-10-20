@@ -38,6 +38,7 @@ if param_flag
     lat_len = est_param.lat_len; % Lateral window length [wvls]
     lat_hop = est_param.lat_hop; % Lateral window hop [wvls]
     med_sz = est_param.med_sz;   % Median filter size [smpls]
+    cum_sum = est_param.cum_sum; % Moving average length [smpls]
     
     % Define window parameters
     w_x = ceil(lat_len / dx);            % Lateral window length [smpls]
@@ -68,18 +69,19 @@ if param_flag
         '* PData.PDelta(3);'], w_z, N_z, hop_z))
 
     % Create hann window
-    hann_win_F = repmat(hann(w_z), 1, w_x);
-    hann_win_f = repmat(hann(w_z-1), 1, w_x);
-    %hann_win = ones(w_z, w_x);
+    %hann_win_F = repmat(hann(w_z), 1, w_x);
+    %hann_win_f = repmat(hann(w_z-1), 1, w_x);
+    hann_win_F = ones(w_z, w_x);
+    hann_win_f = ones(w_z-1, w_x);
 
     % Preallocate displacement
     evalin('base', sprintf('MovieData = zeros(%d, %d, %d);', ...
-                            N_z, N_x, bmode_adq-ens_len-1))
+                            N_z, N_x, bmode_adq-ens_len+1))
     MovieData = evalin('base', 'MovieData');
 end
 
 % Estimate velocity
-for t = 1:(bmode_adq-ens_len)
+for t = 1:(bmode_adq-ens_len+1)
     % Calculate ensemble windows
     win_t_F = (1:ens_len-1) + (t - 1);
     win_t_f = (1:ens_len) + (t - 1);
@@ -105,8 +107,6 @@ for t = 1:(bmode_adq-ens_len)
                 IData(win_z_F, win_x, 1, win_t_F + 1) + ...
                 QData(win_z_F, win_x, 1, win_t_F) .* ...
                 QData(win_z_F, win_x, 1, win_t_F + 1)), 'all')) / (2*pi);
-
-            %if isnan(F_0); continue; end
         
             f_dopp = atan(...
                 sum(hann_win_f .* ...
@@ -121,7 +121,7 @@ for t = 1:(bmode_adq-ens_len)
                 QData(win_z_f + 1, win_x, 1, win_t_f)), 'all')) / (2*pi);
         
             % Calculate differential displacement [wvls]
-            MovieData(z, x, t) =  - F_0 / (1 + f_dopp) / 2;
+            MovieData(z, x, t) =  F_0 / (1 + f_dopp) * 14.91;
         end
     end
 
@@ -131,6 +131,7 @@ for t = 1:(bmode_adq-ens_len)
 end
 
 % Save accumulated displacement [wvls] to workspace 
-assignin('base', 'MovieData', cumsum(MovieData, 3));
+assignin('base', 'MovieData', ...
+    convn(MovieData, ones(1, 1, cum_sum)/cum_sum, 'same'));
 
 end

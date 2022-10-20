@@ -4,9 +4,9 @@
 clear all;
 
 % Experiment info
-alg = 'scc';
-exp = 'lat_len';
-param = [1]; % window lengths [wvls]
+alg = 'lou';
+exp = 'cum_sum';
+param = [1:2:20];
 
 % Estimation parameters
 est_param = repmat(struct( ...
@@ -14,21 +14,22 @@ est_param = repmat(struct( ...
     'axi_hop', 1, ...       % ALL: Axial window hop [wvls]
     'lat_len', 1, ...       % ALL: Lateral window length [wvls]
     'lat_hop', 1, ...       % ALL: Lateral window hop [wvls]
-    'fine_res', 0.05, ...   % CC: Polynomial interp. res. [smpls]
-    'search_z', 3, ...      % SCC: Axial disp. limit [wvls]
-    'search_x', 3, ...      % SCC: Lateral disp. limit [wvls]
-    'ens_len', 4, ...       % LOU: N = Ensemble length
-    'med_sz', 5), ...       % LOU: Median filter size [smpls]
+    'fine_res', 0.1, ...   % CC: Polynomial interp. res. [smpls]
+    'search_z', 2, ...      % SCC: Axial disp. limit [wvls]
+    'search_x', 2, ...      % SCC: Lateral disp. limit [wvls]
+    'ens_len', 2, ...       % LOU: N = Ensemble length
+    'med_sz', 3, ...        % LOU: Median filter size [smpls]
+    'cum_sum', 10), ...     % LOU: Moving average length [smpls]
     1, length(param));
 
 for i = 1:length(param)
-    est_param(i).lat_len = param(i);
+    est_param(i).(exp) = param(i);
 end
 
 % Specify constant parameters
 P.startDepth = 10; % acquisition start depth [wavelengths]
 P.endDepth = 80;   % acquisition end depth [wavelengths]
-P.bmode_adq = 199; % b-mode adquisition number
+P.bmode_adq = 200; % b-mode adquisition number
 P.simulate = 1;    % enable simulate mode
 
 % Define Trans structure array.
@@ -53,8 +54,6 @@ for i = 1:length(param)
     for it = 1
         % Load IQData
         load(sprintf('IQData/IQData_u%d_i%d.mat', mu, it))
-        IData{1}(:, :, 1, 2) = IData{1}(:, :, 1, 1);
-        QData{1}(:, :, 1, 2) = QData{1}(:, :, 1, 1);
 
         % Estimate displacement and measure time
         tic(); TDE_estimate_u(IData{1}, QData{1}, alg); time = toc()

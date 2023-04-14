@@ -10,7 +10,7 @@ function TDE_estimate_u_lou(IData, QData)
 
 % Declare static variables
 persistent bmode_adq MovieData ens_len med_sz w_x w_z hop_x hop_z N_x N_z ...
-           hann_win_F hann_win_f 
+           hann_win_F hann_win_f cum_sum
     
 % Read parameter change flag
 param_flag = evalin('base', 'param_flag');
@@ -31,13 +31,13 @@ if param_flag
     dz = evalin('base', 'PData.PDelta(3)');  % z resolution [wvls]
 
     % Get estimation Parameters (may change due to grid resolution)
-    est_param = evalin('base', 'current_param');
+    est_param = evalin('base', 'current_param.lou');
     ens_len = est_param.ens_len; % N = Ensemble length
     axi_len = est_param.axi_len; % Axial window length [wvls]
     axi_hop = est_param.axi_hop; % Axial window hop [wvls]
     lat_len = est_param.lat_len; % Lateral window length [wvls]
     lat_hop = est_param.lat_hop; % Lateral window hop [wvls]
-    med_sz = est_param.med_sz;   % Median filter size [smpls]
+    med_sz = est_param.med_sz;  % Median filter size [smpls]
     cum_sum = est_param.cum_sum; % Moving average length [smpls]
     
     % Define window parameters

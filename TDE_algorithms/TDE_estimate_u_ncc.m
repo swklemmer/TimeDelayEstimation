@@ -10,7 +10,7 @@ function TDE_estimate_u_ncc(IData, QData)
 % PData.Size([1,2]) = [140, 43] @ pdelta = 0.3
 
 % Declare static variables
-persistent dz w_x w_z hop_x hop_z N_x N_z coarse_x coarse_z ...
+persistent dz med_sz w_x w_z hop_x hop_z N_x N_z coarse_x coarse_z ...
     fine_dim fine_x fine_z bmode_adq MovieData
 
 % Read parameter change flag
@@ -32,12 +32,13 @@ if param_flag
     dz = evalin('base', 'PData.PDelta(3)');  % z resolution [wvls]
 
     % Get estimation Parameters (may change due to grid resolution)
-    est_param = evalin('base', 'current_param');
+    est_param = evalin('base', 'current_param.ncc');
     axi_len = est_param.axi_len; % Axi. window length [wvls]
     lat_len = est_param.lat_len; % Lat. window length [wvls]
     axi_hop = est_param.axi_hop; % Axi. window hop [wvls]
     lat_hop = est_param.lat_hop; % Lat. window hop [wvls]
     fine_res = est_param.fine_res; % Fine resolution [samples]
+    med_sz = est_param.med_sz;   % Median filter size [smpls]
     
     % Generate windows
     w_z = 1 + 2 * ceil(axi_len / dz / 2); % Axi. window length [samples]
@@ -49,9 +50,10 @@ if param_flag
 
     % Save parameters to text file
     param = {'Axi. Win. Size'; 'Axi. Win. Hop'; ...
-            'Lat. Win. Size'; 'Lat. Win. Hop'; 'Subsample Res.'};
-    value = [w_z * dz; hop_z * dz; w_x * dx; hop_x * dx; fine_res];
-    units = {'wvls'; 'wvls'; 'wvls'; 'wvls'; 'smpls'};
+            'Lat. Win. Size'; 'Lat. Win. Hop'; ...
+            'Subsample Res.'; 'Median Filter Size'};
+    value = [w_z * dz; hop_z * dz; w_x * dx; hop_x * dx; fine_res; med_sz];
+    units = {'wvls'; 'wvls'; 'wvls'; 'wvls'; 'smpls'; 'smpls'};
     param_table = table(param, value, units);
     evalin('base', 'param_table = table();');
     assignin('base', 'param_table', param_table);
@@ -124,6 +126,9 @@ for t = 2:bmode_adq
             MovieData(z, x, t-1) = (max_z - w_z + fine_dim(max_dz)) * dz;
         end
     end
+    % Apply median filter
+    MovieData(:, :, t-1) = medfilt2(MovieData(:, :, t-1), ...
+                        [med_sz, med_sz], 'symmetric');
 end
 
 % Save displacement to workspace

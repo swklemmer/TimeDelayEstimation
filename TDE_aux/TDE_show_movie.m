@@ -9,7 +9,7 @@ function TDE_show_movie(hObject, ~)
 
     fig = figure();
     img = imagesc(est_x, est_z, squeeze(MovieData(: ,:, 1)), ...
-        [min(MovieData, [], 'all'), max(MovieData, [], 'all')]);
+        [-1.5, 1.5]);
     colorbar;
 
     % Display all frames within 3 seconds

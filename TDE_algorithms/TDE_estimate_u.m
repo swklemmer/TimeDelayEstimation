@@ -11,6 +11,6 @@ elseif strcmp(alg, 'lou')
     TDE_estimate_u_lou(IData, QData)
 
 else
-    printf("Selected algorithm does'nt exist.\n")
+    fprintf("Selected algorithm does'nt exist.\n")
 
 end

@@ -3,7 +3,7 @@ function [Recon, ReconInfo] = TDE_Recon(P)
 
 % #1: IQ reconstruction into Interbuffer for displacement processing 
 Recon(1) = struct( ...
-    'senscutoff', 0.925, ... % element angular sensitivity
+    'senscutoff', 0.6, ...      % element angular sensitivity
     'pdatanum', 1, ...          % PixelData structure
     'rcvBufFrame', 1, ...       % RcvBuffer source frame
     'IntBufDest', [1, 1], ...   % Interbuffer dest. [buf, frame]
@@ -27,7 +27,7 @@ Recon(1) = struct( ...
 
 % #2: Intensity reconstruction into Imagebuffer for last B-mode display
 Recon(2) = struct( ...
-    'senscutoff', 0.925, ... % element angular sensitivity
+    'senscutoff', 0.6, ... % element angular sensitivity
     'pdatanum', 1, ...          % PixelData structure
     'rcvBufFrame', 1, ...       % RcvBuffer source frame
     'IntBufDest', [0, 0], ...   % Interbuffer dest. [buf, frame]

@@ -13,37 +13,32 @@ RMSE = zeros(size(MovieData, 3), 1);
 MAE = zeros(size(MovieData, 3), 1);
 SD = zeros(size(MovieData, 3), 1);
 
-for t = 1:size(MovieData, 3)
+% Interpolate real displacement at estimation points
+real_uz = zeros(size(MovieData));
 
-    % Interpolate real displacement at pixel locations
+for t = 1:size(MovieData, 3)
     u_z = squeeze(Disp.u_z(t, :, :, :));
     
-    real_uz =  ...
+    real_uz_t =  ...
         interp3(Disp.y_dim, Disp.x_dim, Disp.z_dim, u_z, ...
         abs(est_pts(:, 2)), abs(est_pts(:, 1)), est_pts(:, 3), ...
         "linear", 0);
 
-    real_uz = reshape(real_uz, size(MovieData, [1, 2]));
+    real_uz(:, :, t) = reshape(real_uz_t, size(MovieData, [1, 2]));
 
-    % Normalize displacements (add epsilon to avoid division by zero)
-    norm_est_u = MovieData(:, :, t) ./ (max(MovieData, [], 'all') + 1e-10);
-    norm_real_u = real_uz ./ (max(real_uz, [], 'all') + 1e-10);
+end
+
+% Find gain that minimizes L2 error before comparisson
+c = MovieData(:)' * real_uz(:) / (MovieData(:)' * MovieData(:))
+
+for t = 1:size(MovieData, 3)
 
     % Evaluate estimator performance
-    err = abs(norm_est_u - norm_real_u);
+    err = abs(c * MovieData(:, :, t) - real_uz(:, :, t));
     RMSE(t) = sqrt(mean(err.^2, 'all'));
     MAE(t) = mean(abs(err), 'all');
     SD(t) = std(err, 0, 'all');
 
-%     figure(1)
-%     imagesc(est_x, est_z, norm_real_u, [-1, 1])
-%     colorbar
-% 
-%     figure(2)
-%     imagesc(est_x, est_z, norm_est_u, [-1, 1])
-%     colorbar
-% 
-%     pause()
 end
 
 end

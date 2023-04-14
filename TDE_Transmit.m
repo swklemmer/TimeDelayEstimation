@@ -26,7 +26,7 @@ TPC(1) = struct( ...            % specify TX power controller profile
     'xmitDuration', 10);        % max. transmit duration [usec]
 
 % #2: Push long pulse
-N_push_elem = 64; % number of pushing elements (must not exceed max. I)
+N_push_elem = 32; % number of pushing elements (must not exceed max. I)
 push_apod = [zeros(1, (Trans.numelements - N_push_elem) / 2), ...
             ones(1, N_push_elem), ...
             zeros(1, (Trans.numelements - N_push_elem) / 2)];
